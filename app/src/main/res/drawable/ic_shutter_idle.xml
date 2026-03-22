@@ -1,0 +1,55 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="142dp"
+    android:height="142dp"
+    android:viewportWidth="80"
+    android:viewportHeight="80">
+
+  <path
+      android:pathData="M40,0L40,0A40,40 0,0 1,80 40L80,40A40,40 0,0 1,40 80L40,80A40,40 0,0 1,0 40L0,40A40,40 0,0 1,40 0z"
+      android:fillColor="#ffffff"
+      android:fillAlpha="0.01"/>
+
+  <path
+      android:pathData="M40,1.5L40,1.5A38.5,38.5 0,0 1,78.5 40L78.5,40A38.5,38.5 0,0 1,40 78.5L40,78.5A38.5,38.5 0,0 1,1.5 40L1.5,40A38.5,38.5 0,0 1,40 1.5z"
+      android:strokeAlpha="0.9"
+      android:strokeWidth="3"
+      android:fillColor="#00000000"
+      android:strokeColor="#ffffff"/>
+
+  <group>
+    <clip-path
+        android:pathData="M40,8L40,8A32,32 0,0 1,72 40L72,40A32,32 0,0 1,40 72L40,72A32,32 0,0 1,8 40L8,40A32,32 0,0 1,40 8z"/>
+    <path
+        android:pathData="M40,8L40,8A32,32 0,0 1,72 40L72,40A32,32 0,0 1,40 72L40,72A32,32 0,0 1,8 40L8,40A32,32 0,0 1,40 8z"
+        android:fillColor="#ADC6FF"/>
+    <path
+        android:strokeWidth="1"
+        android:pathData="M40,8.5L40,8.5A31.5,31.5 0,0 1,71.5 40L71.5,40A31.5,31.5 0,0 1,40 71.5L40,71.5A31.5,31.5 0,0 1,8.5 40L8.5,40A31.5,31.5 0,0 1,40 8.5z"
+        android:strokeAlpha="0.2"
+        android:fillColor="#00000000"
+        android:strokeColor="#ffffff"/>
+    <path
+        android:pathData="M8,8h64v64h-64z">
+      <aapt:attr name="android:fillColor">
+        <gradient
+            android:startX="8"
+            android:startY="72"
+            android:endX="72"
+            android:endY="8"
+            android:type="linear">
+          <item android:offset="0" android:color="#0C000000"/>
+          <item android:offset="1" android:color="#19FFFFFF"/>
+        </gradient>
+      </aapt:attr>
+    </path>
+  </group>
+
+  <path
+      android:strokeWidth="1"
+      android:pathData="M40,0.5L40,0.5A39.5,39.5 0,0 1,79.5 40L79.5,40A39.5,39.5 0,0 1,40 79.5L40,79.5A39.5,39.5 0,0 1,0.5 40L0.5,40A39.5,39.5 0,0 1,40 0.5z"
+      android:strokeAlpha="0.05"
+      android:fillColor="#00000000"
+      android:strokeColor="#ffffff"/>
+
+</vector>
