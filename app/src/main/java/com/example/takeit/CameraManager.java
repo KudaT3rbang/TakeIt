@@ -7,8 +7,10 @@ import android.provider.MediaStore;
 import android.util.Log;
 
 import androidx.camera.core.Camera;
+import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageCaptureCapabilities;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
@@ -25,39 +27,79 @@ import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
 public class CameraManager {
+    public enum CaptureFormat {JPEG, RAW}
+
     private final LifecycleOwner lifecycleOwner;
     private final PreviewView previewView;
     private final Context context;
-
+    private ProcessCameraProvider cameraProvider;
     private Camera camera;
     private ImageCapture imageCapture;
+    private CaptureFormat currentFormat = CaptureFormat.JPEG;
     private final int currentCameraFacing = CameraSelector.LENS_FACING_BACK;
+
+    private OnRawSupportListener rawSupportListener;
+
+    public interface OnRawSupportListener {
+        void onRawSupported(boolean supported);
+    }
 
     public interface OnPhotoCapturedListener {
         void onSuccess();
+
         void onError(String message);
     }
+
     public CameraManager(LifecycleOwner lifecycleOwner, PreviewView previewView) {
         this.lifecycleOwner = lifecycleOwner;
         this.previewView = previewView;
         this.context = previewView.getContext();
     }
 
+    public void setOnRawSupportListener(OnRawSupportListener listener) {
+        this.rawSupportListener = listener;
+    }
+
+    private boolean checkRawSupport(CameraSelector selector) {
+        CameraInfo cameraInfo = cameraProvider.getCameraInfo(selector);
+        ImageCaptureCapabilities capabilities = ImageCapture.getImageCaptureCapabilities(cameraInfo);
+        return capabilities.getSupportedOutputFormats().contains(ImageCapture.OUTPUT_FORMAT_RAW);
+    }
+
+    private ImageCapture buildImageCapture(boolean rawSupported) {
+        ImageCapture.Builder builder = new ImageCapture.Builder()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY);
+
+        if (currentFormat == CaptureFormat.RAW && rawSupported) {
+            builder.setOutputFormat(ImageCapture.OUTPUT_FORMAT_RAW);
+        }
+
+        return builder.build();
+    }
+
     public void startCamera() {
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(context);
         cameraProviderFuture.addListener(() -> {
             try {
-                ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+                cameraProvider = cameraProviderFuture.get();
                 Preview preview = new Preview.Builder().build();
                 preview.setSurfaceProvider(previewView.getSurfaceProvider());
-
-                imageCapture = new ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
-                        .build();
 
                 CameraSelector cameraSelector = new CameraSelector.Builder()
                         .requireLensFacing(currentCameraFacing)
                         .build();
+
+                boolean rawSupported = checkRawSupport(cameraSelector);
+
+                if (!rawSupported && currentFormat == CaptureFormat.RAW) {
+                    currentFormat = CaptureFormat.JPEG;
+                }
+
+                if (rawSupportListener != null) {
+                    rawSupportListener.onRawSupported(rawSupported);
+                }
+
+                imageCapture = buildImageCapture(rawSupported);
 
                 cameraProvider.unbindAll();
                 camera = cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture);
@@ -75,18 +117,20 @@ public class CameraManager {
 
         String name = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(System.currentTimeMillis());
 
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
-        contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+        values.put(MediaStore.MediaColumns.MIME_TYPE,
+                currentFormat == CaptureFormat.RAW ? "image/x-adobe-dng" : "image/jpeg");
+
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-            contentValues.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/TakeIt");
+            values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/TakeIt");
         }
 
-        ImageCapture.OutputFileOptions outputOptions = new ImageCapture.OutputFileOptions
-                .Builder(context.getContentResolver(),
-                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                        contentValues)
-                .build();
+        ImageCapture.OutputFileOptions outputOptions = new ImageCapture.OutputFileOptions.Builder(
+                context.getContentResolver(),
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                values
+        ).build();
 
         imageCapture.takePicture(
                 outputOptions,
@@ -104,5 +148,16 @@ public class CameraManager {
                     }
                 }
         );
+    }
+
+    public void setFormat(CaptureFormat format) {
+        if (currentFormat == format) return;
+        imageCapture = null;
+        currentFormat = format;
+        startCamera();
+    }
+
+    public CaptureFormat getCurrentFormat() {
+        return currentFormat;
     }
 }
