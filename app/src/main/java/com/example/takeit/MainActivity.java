@@ -3,6 +3,7 @@ package com.example.takeit;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -20,6 +21,7 @@ public class MainActivity extends AppCompatActivity {
 
     private CameraManager cameraManager;
     private ImageView ivShutter;
+    private ImageView btnFormat;
     private boolean isCapturing = false;
 
     private final ActivityResultLauncher<String[]> permissionLauncher =
@@ -44,9 +46,14 @@ public class MainActivity extends AppCompatActivity {
         });
 
         PreviewView previewView = findViewById(R.id.previewView);
-        ivShutter   = findViewById(R.id.ivShutter);
+        btnFormat = findViewById(R.id.btnFormat);
+        ivShutter = findViewById(R.id.ivShutter);
 
         cameraManager = new CameraManager(this, previewView);
+        btnFormat.setVisibility(View.GONE);
+        cameraManager.setOnRawSupportListener(supported ->
+                btnFormat.setVisibility(supported ? View.VISIBLE : View.GONE));
+        btnFormat.setOnClickListener(v -> toggleFormat());
 
         ivShutter.setOnClickListener(v -> {
             if (isCapturing) return;
@@ -79,6 +86,16 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.RECORD_AUDIO,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE
             });
+        }
+    }
+
+    private void toggleFormat() {
+        if (cameraManager.getCurrentFormat() == CameraManager.CaptureFormat.JPEG) {
+            cameraManager.setFormat(CameraManager.CaptureFormat.RAW);
+            btnFormat.setImageResource(R.drawable.ic_button_format_raw);
+        } else {
+            cameraManager.setFormat(CameraManager.CaptureFormat.JPEG);
+            btnFormat.setImageResource(R.drawable.ic_button_format_jpeg);
         }
     }
 }
