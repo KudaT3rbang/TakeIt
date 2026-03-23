@@ -59,12 +59,14 @@ public class MainActivity extends AppCompatActivity {
             if (isCapturing) return;
             isCapturing = true;
             ivShutter.setImageResource(R.drawable.ic_shutter_pressed);
+            btnFormat.setEnabled(false);
 
             cameraManager.capturePhoto(new CameraManager.OnPhotoCapturedListener() {
                 @Override
                 public void onSuccess() {
                     isCapturing = false;
                     ivShutter.setImageResource(R.drawable.ic_shutter_idle);
+                    btnFormat.setEnabled(true);
                     Toast.makeText(MainActivity.this, "Photo saved!", Toast.LENGTH_SHORT).show();
                 }
 
@@ -72,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
                 public void onError(String message) {
                     isCapturing = false;
                     ivShutter.setImageResource(R.drawable.ic_shutter_idle);
+                    btnFormat.setEnabled(true);
                     Toast.makeText(MainActivity.this, "Failed: " + message, Toast.LENGTH_SHORT).show();
                 }
             });

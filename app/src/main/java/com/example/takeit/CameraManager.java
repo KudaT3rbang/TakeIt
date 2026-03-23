@@ -91,6 +91,10 @@ public class CameraManager {
 
                 boolean rawSupported = checkRawSupport(cameraSelector);
 
+                if (!rawSupported && currentFormat == CaptureFormat.RAW) {
+                    currentFormat = CaptureFormat.JPEG;
+                }
+
                 if (rawSupportListener != null) {
                     rawSupportListener.onRawSupported(rawSupported);
                 }
