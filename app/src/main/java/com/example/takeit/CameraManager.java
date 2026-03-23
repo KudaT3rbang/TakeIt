@@ -152,6 +152,7 @@ public class CameraManager {
 
     public void setFormat(CaptureFormat format) {
         if (currentFormat == format) return;
+        imageCapture = null;
         currentFormat = format;
         startCamera();
     }
