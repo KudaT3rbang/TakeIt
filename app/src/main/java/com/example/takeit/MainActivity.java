@@ -21,7 +21,8 @@ public class MainActivity extends AppCompatActivity {
 
     private CameraManager cameraManager;
     private ImageView ivShutter;
-    private ImageView btnFormat;
+    private ImageView ivFormat;
+    private ImageView ivFlash;
     private boolean isCapturing = false;
 
     private final ActivityResultLauncher<String[]> permissionLauncher =
@@ -46,27 +47,40 @@ public class MainActivity extends AppCompatActivity {
         });
 
         PreviewView previewView = findViewById(R.id.previewView);
-        btnFormat = findViewById(R.id.btnFormat);
+        ivFormat = findViewById(R.id.btnFormat);
+        ivFlash = findViewById(R.id.ivFlash);
         ivShutter = findViewById(R.id.ivShutter);
 
         cameraManager = new CameraManager(this, previewView);
-        btnFormat.setVisibility(View.GONE);
+        ivFlash.setVisibility(View.GONE);
+        ivFormat.setVisibility(View.GONE);
         cameraManager.setOnRawSupportListener(supported ->
-                btnFormat.setVisibility(supported ? View.VISIBLE : View.GONE));
-        btnFormat.setOnClickListener(v -> toggleFormat());
+                ivFormat.setVisibility(supported ? View.VISIBLE : View.GONE));
+        ivFormat.setOnClickListener(v -> toggleFormat());
+
+        cameraManager.setOnCameraReadyListener(hasFlashUnit -> {
+            if (hasFlashUnit && cameraManager.getCurrentFormat() == CameraManager.CaptureFormat.JPEG) {
+                ivFlash.setVisibility(View.VISIBLE);
+            } else {
+                ivFlash.setVisibility(View.GONE);
+            }
+
+            ivFlash.setOnClickListener(v -> cycleLightMode());
+            updateFlashIcon(cameraManager.getLightMode());
+        });
 
         ivShutter.setOnClickListener(v -> {
             if (isCapturing) return;
             isCapturing = true;
             ivShutter.setImageResource(R.drawable.ic_shutter_pressed);
-            btnFormat.setEnabled(false);
+            ivFormat.setEnabled(false);
 
             cameraManager.capturePhoto(new CameraManager.OnPhotoCapturedListener() {
                 @Override
                 public void onSuccess() {
                     isCapturing = false;
                     ivShutter.setImageResource(R.drawable.ic_shutter_idle);
-                    btnFormat.setEnabled(true);
+                    ivFormat.setEnabled(true);
                     Toast.makeText(MainActivity.this, "Photo saved!", Toast.LENGTH_SHORT).show();
                 }
 
@@ -74,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
                 public void onError(String message) {
                     isCapturing = false;
                     ivShutter.setImageResource(R.drawable.ic_shutter_idle);
-                    btnFormat.setEnabled(true);
+                    ivFormat.setEnabled(true);
                     Toast.makeText(MainActivity.this, "Failed: " + message, Toast.LENGTH_SHORT).show();
                 }
             });
@@ -95,10 +109,41 @@ public class MainActivity extends AppCompatActivity {
     private void toggleFormat() {
         if (cameraManager.getCurrentFormat() == CameraManager.CaptureFormat.JPEG) {
             cameraManager.setFormat(CameraManager.CaptureFormat.RAW);
-            btnFormat.setImageResource(R.drawable.ic_button_format_raw);
+            ivFormat.setImageResource(R.drawable.ic_button_format_raw);
         } else {
             cameraManager.setFormat(CameraManager.CaptureFormat.JPEG);
-            btnFormat.setImageResource(R.drawable.ic_button_format_jpeg);
+            ivFormat.setImageResource(R.drawable.ic_button_format_jpeg);
+        }
+    }
+
+    private void cycleLightMode() {
+        int next;
+        switch (cameraManager.getLightMode()) {
+            case CameraManager.LIGHT_MODE_OFF:
+                next = CameraManager.LIGHT_MODE_AUTO;
+                break;
+            case CameraManager.LIGHT_MODE_AUTO:
+                next = CameraManager.LIGHT_MODE_TORCH;
+                break;
+            default:
+                next = CameraManager.LIGHT_MODE_OFF;
+                break;
+        }
+        cameraManager.setLightMode(next);
+        updateFlashIcon(next);
+    }
+
+    private void updateFlashIcon(int mode) {
+        switch (mode) {
+            case CameraManager.LIGHT_MODE_TORCH:
+                ivFlash.setImageResource(R.drawable.ic_flash_on);
+                break;
+            case CameraManager.LIGHT_MODE_AUTO:
+                ivFlash.setImageResource(R.drawable.ic_flash_automatic);
+                break;
+            default:
+                ivFlash.setImageResource(R.drawable.ic_flash_off);
+                break;
         }
     }
 }

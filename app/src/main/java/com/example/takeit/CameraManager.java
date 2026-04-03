@@ -28,6 +28,9 @@ import java.util.concurrent.ExecutionException;
 
 public class CameraManager {
     public enum CaptureFormat {JPEG, RAW}
+    public static final int LIGHT_MODE_OFF = 0;
+    public static final int LIGHT_MODE_AUTO = 1;
+    public static final int LIGHT_MODE_TORCH = 2;
 
     private final LifecycleOwner lifecycleOwner;
     private final PreviewView previewView;
@@ -37,17 +40,27 @@ public class CameraManager {
     private ImageCapture imageCapture;
     private CaptureFormat currentFormat = CaptureFormat.JPEG;
     private final int currentCameraFacing = CameraSelector.LENS_FACING_BACK;
+    private int currentLightMode = LIGHT_MODE_OFF;
 
     private OnRawSupportListener rawSupportListener;
+    private OnCameraReadyListener cameraReadyListener;
 
     public interface OnRawSupportListener {
         void onRawSupported(boolean supported);
+    }
+
+    public interface OnCameraReadyListener {
+        void onCameraReady(boolean hasFlashUnit);
     }
 
     public interface OnPhotoCapturedListener {
         void onSuccess();
 
         void onError(String message);
+    }
+
+    public void setOnCameraReadyListener(OnCameraReadyListener listener) {
+        this.cameraReadyListener = listener;
     }
 
     public CameraManager(LifecycleOwner lifecycleOwner, PreviewView previewView) {
@@ -67,8 +80,13 @@ public class CameraManager {
     }
 
     private ImageCapture buildImageCapture(boolean rawSupported) {
+        int initialFlashMode = (currentLightMode == LIGHT_MODE_AUTO)
+                ? ImageCapture.FLASH_MODE_AUTO
+                : ImageCapture.FLASH_MODE_OFF;
+
         ImageCapture.Builder builder = new ImageCapture.Builder()
-                .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY);
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                .setFlashMode(initialFlashMode);
 
         if (currentFormat == CaptureFormat.RAW && rawSupported) {
             builder.setOutputFormat(ImageCapture.OUTPUT_FORMAT_RAW);
@@ -103,6 +121,12 @@ public class CameraManager {
 
                 cameraProvider.unbindAll();
                 camera = cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture);
+                setLightMode(currentLightMode);
+
+                if (cameraReadyListener != null) {
+                    boolean hasFlash = camera.getCameraInfo().hasFlashUnit();
+                    cameraReadyListener.onCameraReady(hasFlash);
+                }
             } catch (ExecutionException | InterruptedException e) {
                 Log.e("CameraManager", "Failed to start camera", e);
             }
@@ -157,7 +181,31 @@ public class CameraManager {
         startCamera();
     }
 
+    public void setLightMode(int mode) {
+        currentLightMode = mode;
+        if (camera != null && imageCapture != null) {
+            switch (mode) {
+                case LIGHT_MODE_OFF:
+                    camera.getCameraControl().enableTorch(false);
+                    imageCapture.setFlashMode(ImageCapture.FLASH_MODE_OFF);
+                    break;
+                case LIGHT_MODE_AUTO:
+                    camera.getCameraControl().enableTorch(false);
+                    imageCapture.setFlashMode(ImageCapture.FLASH_MODE_AUTO);
+                    break;
+                case LIGHT_MODE_TORCH:
+                    camera.getCameraControl().enableTorch(true);
+                    imageCapture.setFlashMode(ImageCapture.FLASH_MODE_OFF);
+                    break;
+            }
+        }
+    }
+
     public CaptureFormat getCurrentFormat() {
         return currentFormat;
+    }
+
+    public int getLightMode() {
+        return currentLightMode;
     }
 }
